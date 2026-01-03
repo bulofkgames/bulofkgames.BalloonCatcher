@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Loading Game...</title>
+
+  <!-- Redirecionamento instantâneo -->
+  <meta http-equiv="refresh" content="0; url=Balloon%20Catcher/index.html">
+
+  <!-- Fallback para navegadores -->
+  <script>
+    window.location.href = "Balloon%20Catcher/index.html";
+  </script>
+</head>
+<body>
+
+  <p>Loading game...</p>
+
+  <script>
+    (function () {
+      const allowedDomains = [
+        "bulofkgames.blogspot.com",
+        "thebulofkproject.blogspot.com",
+        "github.io"
+      ];
+
+      const OFFICIAL_SITE = "https://bulofkgames.blogspot.com/";
+      const ref = document.referrer.toLowerCase();
+
+      if (!ref) return;
+
+      const allowed = allowedDomains.some(domain => ref.includes(domain));
+
+      if (!allowed) {
+        window.location.replace(OFFICIAL_SITE);
+      }
+    })();
+  </script>
+
+</body>
+</html>
