@@ -4,18 +4,6 @@
   <meta charset="UTF-8">
   <title>Loading Game...</title>
 
-  <!-- Redirecionamento instantâneo -->
-  <meta http-equiv="refresh" content="0; url=Balloon%20Catcher/index.html">
-
-  <!-- Fallback para navegadores -->
-  <script>
-    window.location.href = "Balloon%20Catcher/index.html";
-  </script>
-</head>
-<body>
-
-  <p>Loading game...</p>
-
   <script>
     (function () {
       const allowedDomains = [
@@ -25,17 +13,30 @@
       ];
 
       const OFFICIAL_SITE = "https://bulofkgames.blogspot.com/";
+      const GAME_URL = "Balloon%20Catcher/index.html";
+
       const ref = document.referrer.toLowerCase();
 
-      if (!ref) return;
+      // Se não houver referrer, permite (GitHub Pages / acesso direto)
+      if (!ref) {
+        window.location.replace(GAME_URL);
+        return;
+      }
 
       const allowed = allowedDomains.some(domain => ref.includes(domain));
 
       if (!allowed) {
+        // Bloqueado: manda para o site oficial
         window.location.replace(OFFICIAL_SITE);
+      } else {
+        // Permitido: entra no jogo
+        window.location.replace(GAME_URL);
       }
     })();
   </script>
 
+</head>
+<body>
+  <p>Checking access...</p>
 </body>
 </html>
