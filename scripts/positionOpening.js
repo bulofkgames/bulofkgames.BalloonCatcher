@@ -6,8 +6,8 @@ class OpeningPosition {
     update(play) {
         this.blink++;
 
-        // Pressione ESPAÇO para começar
-        if (play.pressedKeys[32]) {
+        // ENTER para começar
+        if (play.pressedKeys[13]) {
             play.goToPosition(new TransferPosition(1));
         }
     }
@@ -22,7 +22,7 @@ class OpeningPosition {
 
         if (Math.floor(this.blink / 30) % 2 === 0) {
             con.font = "24px Arial";
-            con.fillText("Press SPACE to start", play.width / 2, play.height / 2 + 20);
+            con.fillText("Press ENTER to start", play.width / 2, play.height / 2 + 20);
         }
     }
 }
