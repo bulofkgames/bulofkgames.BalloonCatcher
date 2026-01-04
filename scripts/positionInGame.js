@@ -14,30 +14,21 @@ class InGamePosition {
         // ===============================
         let bg = "images/field-background.gif";
 
-        if (this.level >= 100000) {
-            bg = "images/v.jpg";
-        } else if (this.level >= 10000) {
-            bg = "images/v.gif";
-        } else if (this.level >= 1000) {
-            bg = "images/ee.gif";
-        } else if (this.level >= 100) {
-            bg = "images/c.gif";
-        } else if (this.level >= 10) {
-            bg = "images/bb.gif";
-        }
+        if (this.level >= 100000) bg = "images/v.jpg";
+        else if (this.level >= 10000) bg = "images/v.gif";
+        else if (this.level >= 1000) bg = "images/ee.gif";
+        else if (this.level >= 100) bg = "images/c.gif";
+        else if (this.level >= 10) bg = "images/bb.gif";
 
         play.canvas.style.backgroundImage = `url("${bg}")`;
         play.canvas.style.backgroundSize = "100% 100%";
 
         // ===============================
-        // DIFICULDADE POR FAIXA
+        // DIFICULDADE PROGRESSIVA REAL
         // ===============================
-        this.enemySpeed =
-            40 +
-            Math.min(this.level * 5, 300); // limite de velocidade
-
-        this.enemyFireChance =
-            Math.min(0.02 + this.level * 0.003, 0.15); // limite de tiros
+        this.enemySpeed = 50 + this.level * 6;
+        this.maxEnemyShots = Math.min(1 + Math.floor(this.level / 3), 12);
+        this.enemyFireChance = Math.min(0.03 + this.level * 0.01, 0.8);
 
         // ===============================
         // PLAYER
@@ -47,11 +38,15 @@ class InGamePosition {
             y: play.playBoundaries.bottom - 50,
             w: 50,
             h: 45,
-            speed: 300
+            speed: 320,
+            moving: false
         };
 
-        this.playerImg = new Image();
-        this.playerImg.src = "images/man.gif";
+        this.playerImgIdle = new Image();
+        this.playerImgIdle.src = "images/man.gif";
+
+        this.playerImgRun = new Image();
+        this.playerImgRun.src = "images/r.gif";
 
         // ===============================
         // TIROS DO PLAYER
@@ -79,10 +74,9 @@ class InGamePosition {
         }
 
         this.ufoImg = new Image();
-        this.ufoImg.src =
-            this.level % 2 === 0
-                ? "images/ufo2.png"
-                : "images/ufo.png";
+        this.ufoImg.src = this.level % 2 === 0
+            ? "images/ufo2.png"
+            : "images/ufo.png";
 
         this.enemyBullets = [];
         this.enemyDir = 1;
@@ -92,23 +86,28 @@ class InGamePosition {
         const dt = play.setting.updateSeconds;
 
         // ===============================
-        // MOVIMENTO PLAYER
+        // MOVIMENTO PLAYER + ANIMAÇÃO
         // ===============================
-        if (play.pressedKeys[37]) this.player.x -= this.player.speed * dt;
-        if (play.pressedKeys[39]) this.player.x += this.player.speed * dt;
+        this.player.moving = false;
+
+        if (play.pressedKeys[37]) {
+            this.player.x -= this.player.speed * dt;
+            this.player.moving = true;
+        }
+        if (play.pressedKeys[39]) {
+            this.player.x += this.player.speed * dt;
+            this.player.moving = true;
+        }
 
         this.player.x = Math.max(
             play.playBoundaries.left,
-            Math.min(
-                this.player.x,
-                play.playBoundaries.right - this.player.w
-            )
+            Math.min(this.player.x, play.playBoundaries.right - this.player.w)
         );
 
         // ===============================
         // TIRO PLAYER
         // ===============================
-        if (play.pressedKeys[32] && Date.now() - this.lastShot > 300) {
+        if (play.pressedKeys[32] && Date.now() - this.lastShot > 250) {
             this.playerBullets.push({
                 x: this.player.x + this.player.w / 2,
                 y: this.player.y
@@ -117,39 +116,38 @@ class InGamePosition {
             this.lastShot = Date.now();
         }
 
-        this.playerBullets.forEach(b => (b.y -= 400 * dt));
+        this.playerBullets.forEach(b => (b.y -= 420 * dt));
         this.playerBullets = this.playerBullets.filter(b => b.y > 0);
 
         // ===============================
         // MOVIMENTO UFOs
         // ===============================
-        let edgeHit = false;
+        let hitEdge = false;
 
         this.ufos.forEach(u => {
             if (!u.alive) return;
-
             u.x += this.enemyDir * this.enemySpeed * dt;
 
             if (
                 u.x < play.playBoundaries.left ||
                 u.x + u.w > play.playBoundaries.right
-            ) {
-                edgeHit = true;
-            }
+            ) hitEdge = true;
         });
 
-        if (edgeHit) {
+        if (hitEdge) {
             this.enemyDir *= -1;
-            this.ufos.forEach(u => (u.y += 15));
+            this.ufos.forEach(u => (u.y += 18));
         }
 
         // ===============================
-        // TIRO INIMIGO (PROGRESSIVO)
+        // TIROS INIMIGOS (MUITO MAIS!)
         // ===============================
         if (Math.random() < this.enemyFireChance) {
-            const alive = this.ufos.filter(u => u.alive);
-            if (alive.length) {
-                const s = alive[Math.floor(Math.random() * alive.length)];
+            const shooters = this.ufos.filter(u => u.alive);
+            const shots = Math.min(this.maxEnemyShots, shooters.length);
+
+            for (let i = 0; i < shots; i++) {
+                const s = shooters[Math.floor(Math.random() * shooters.length)];
                 this.enemyBullets.push({
                     x: s.x + s.w / 2,
                     y: s.y + s.h
@@ -157,10 +155,10 @@ class InGamePosition {
             }
         }
 
-        this.enemyBullets.forEach(b => (b.y += 280 * dt));
+        this.enemyBullets.forEach(b => (b.y += 320 * dt));
 
         // ===============================
-        // COLISÃO: PLAYER → UFO
+        // COLISÃO PLAYER → UFO
         // ===============================
         this.playerBullets = this.playerBullets.filter(b => {
             for (const u of this.ufos) {
@@ -181,7 +179,7 @@ class InGamePosition {
         });
 
         // ===============================
-        // COLISÃO: UFO → PLAYER
+        // COLISÃO UFO → PLAYER
         // ===============================
         this.enemyBullets = this.enemyBullets.filter(b => {
             const hit =
@@ -210,9 +208,7 @@ class InGamePosition {
         // ===============================
         if (
             play.lives <= 0 ||
-            this.ufos.some(
-                u => u.alive && u.y + u.h >= play.playBoundaries.bottom
-            )
+            this.ufos.some(u => u.alive && u.y + u.h >= play.playBoundaries.bottom)
         ) {
             play.goToPosition(new GameOverPosition());
         }
@@ -228,14 +224,12 @@ class InGamePosition {
         con.fillText(`Lives: ${play.lives}`, 20, 60);
         con.fillText(`Score: ${play.score}`, 20, 90);
 
-        // Player
-        con.drawImage(
-            this.playerImg,
-            this.player.x,
-            this.player.y,
-            this.player.w,
-            this.player.h
-        );
+        // PLAYER (ANIMADO)
+        const img = this.player.moving
+            ? this.playerImgRun
+            : this.playerImgIdle;
+
+        con.drawImage(img, this.player.x, this.player.y, this.player.w, this.player.h);
 
         // UFOs
         this.ufos.forEach(u => {
