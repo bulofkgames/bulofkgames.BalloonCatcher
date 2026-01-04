@@ -6,9 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Balloon Catcher</title>
 
+    <!-- CSS -->
     <link rel="stylesheet" href="styles/style.css">
 
-    <!-- Proteção -->
     <script>
         (function () {
             const allowedDomains = [
@@ -32,10 +32,14 @@
 </head>
 
 <body>
+    <!-- Canvas do jogo -->
     <canvas id="Canvas"></canvas>
 
+    <!-- Scripts do jogo (ORDEM IMPORTANTE) -->
     <script src="scripts/objects.js"></script>
     <script src="scripts/positionTransfer.js"></script>
+    <script src="scripts/positionOpening.js"></script>
+    <script src="scripts/positionInGame.js"></script>
     <script src="scripts/main.js"></script>
 </body>
 </html>
