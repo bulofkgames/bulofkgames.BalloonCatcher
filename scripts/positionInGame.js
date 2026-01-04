@@ -5,11 +5,43 @@ class InGamePosition {
     }
 
     entry(play) {
-        play.lives = play.lives ?? 3;
-        play.score = play.score ?? 0;
-        play.sounds = play.sounds ?? new Sounds();
+        play.lives ??= 3;
+        play.score ??= 0;
+        play.sounds ??= new Sounds();
 
-        // ===== PLAYER =====
+        // ===============================
+        // CENÁRIOS POR FAIXA DE NÍVEL
+        // ===============================
+        let bg = "images/field-background.gif";
+
+        if (this.level >= 100000) {
+            bg = "images/v.jpg";
+        } else if (this.level >= 10000) {
+            bg = "images/v.gif";
+        } else if (this.level >= 1000) {
+            bg = "images/ee.gif";
+        } else if (this.level >= 100) {
+            bg = "images/c.gif";
+        } else if (this.level >= 10) {
+            bg = "images/bb.gif";
+        }
+
+        play.canvas.style.backgroundImage = `url("${bg}")`;
+        play.canvas.style.backgroundSize = "100% 100%";
+
+        // ===============================
+        // DIFICULDADE POR FAIXA
+        // ===============================
+        this.enemySpeed =
+            40 +
+            Math.min(this.level * 5, 300); // limite de velocidade
+
+        this.enemyFireChance =
+            Math.min(0.02 + this.level * 0.003, 0.15); // limite de tiros
+
+        // ===============================
+        // PLAYER
+        // ===============================
         this.player = {
             x: play.width / 2 - 25,
             y: play.playBoundaries.bottom - 50,
@@ -21,11 +53,15 @@ class InGamePosition {
         this.playerImg = new Image();
         this.playerImg.src = "images/man.gif";
 
-        // ===== PLAYER BULLETS =====
+        // ===============================
+        // TIROS DO PLAYER
+        // ===============================
         this.playerBullets = [];
-        this.lastPlayerShot = 0;
+        this.lastShot = 0;
 
-        // ===== ENEMIES (4x8) =====
+        // ===============================
+        // INIMIGOS (4 x 8)
+        // ===============================
         this.ufos = [];
         const rows = 4;
         const cols = 8;
@@ -43,58 +79,77 @@ class InGamePosition {
         }
 
         this.ufoImg = new Image();
-        this.ufoImg.src = "images/ufo.png";
+        this.ufoImg.src =
+            this.level % 2 === 0
+                ? "images/ufo2.png"
+                : "images/ufo.png";
 
         this.enemyBullets = [];
         this.enemyDir = 1;
-        this.enemySpeed = 40 + this.level * 10;
     }
 
     update(play) {
         const dt = play.setting.updateSeconds;
 
-        // ===== PLAYER MOVE =====
+        // ===============================
+        // MOVIMENTO PLAYER
+        // ===============================
         if (play.pressedKeys[37]) this.player.x -= this.player.speed * dt;
         if (play.pressedKeys[39]) this.player.x += this.player.speed * dt;
 
         this.player.x = Math.max(
             play.playBoundaries.left,
-            Math.min(this.player.x, play.playBoundaries.right - this.player.w)
+            Math.min(
+                this.player.x,
+                play.playBoundaries.right - this.player.w
+            )
         );
 
-        // ===== PLAYER SHOOT =====
-        if (play.pressedKeys[32] && Date.now() - this.lastPlayerShot > 300) {
+        // ===============================
+        // TIRO PLAYER
+        // ===============================
+        if (play.pressedKeys[32] && Date.now() - this.lastShot > 300) {
             this.playerBullets.push({
                 x: this.player.x + this.player.w / 2,
                 y: this.player.y
             });
             play.sounds.playShot();
-            this.lastPlayerShot = Date.now();
+            this.lastShot = Date.now();
         }
 
-        this.playerBullets.forEach(b => b.y -= 400 * dt);
+        this.playerBullets.forEach(b => (b.y -= 400 * dt));
         this.playerBullets = this.playerBullets.filter(b => b.y > 0);
 
-        // ===== ENEMY MOVE =====
-        let hitEdge = false;
+        // ===============================
+        // MOVIMENTO UFOs
+        // ===============================
+        let edgeHit = false;
+
         this.ufos.forEach(u => {
             if (!u.alive) return;
+
             u.x += this.enemyDir * this.enemySpeed * dt;
-            if (u.x < play.playBoundaries.left || u.x + u.w > play.playBoundaries.right) {
-                hitEdge = true;
+
+            if (
+                u.x < play.playBoundaries.left ||
+                u.x + u.w > play.playBoundaries.right
+            ) {
+                edgeHit = true;
             }
         });
 
-        if (hitEdge) {
+        if (edgeHit) {
             this.enemyDir *= -1;
-            this.ufos.forEach(u => u.y += 15);
+            this.ufos.forEach(u => (u.y += 15));
         }
 
-        // ===== ENEMY RANDOM SHOOT =====
-        if (Math.random() < 0.02 + this.level * 0.005) {
-            const shooters = this.ufos.filter(u => u.alive);
-            if (shooters.length) {
-                const s = shooters[Math.floor(Math.random() * shooters.length)];
+        // ===============================
+        // TIRO INIMIGO (PROGRESSIVO)
+        // ===============================
+        if (Math.random() < this.enemyFireChance) {
+            const alive = this.ufos.filter(u => u.alive);
+            if (alive.length) {
+                const s = alive[Math.floor(Math.random() * alive.length)];
                 this.enemyBullets.push({
                     x: s.x + s.w / 2,
                     y: s.y + s.h
@@ -102,9 +157,11 @@ class InGamePosition {
             }
         }
 
-        this.enemyBullets.forEach(b => b.y += 250 * dt);
+        this.enemyBullets.forEach(b => (b.y += 280 * dt));
 
-        // ===== COLLISION PLAYER BULLET vs UFO =====
+        // ===============================
+        // COLISÃO: PLAYER → UFO
+        // ===============================
         this.playerBullets = this.playerBullets.filter(b => {
             for (const u of this.ufos) {
                 if (
@@ -123,7 +180,9 @@ class InGamePosition {
             return true;
         });
 
-        // ===== COLLISION ENEMY BULLET vs PLAYER =====
+        // ===============================
+        // COLISÃO: UFO → PLAYER
+        // ===============================
         this.enemyBullets = this.enemyBullets.filter(b => {
             const hit =
                 b.x > this.player.x &&
@@ -139,15 +198,21 @@ class InGamePosition {
             return b.y < play.height;
         });
 
-        // ===== LEVEL COMPLETE =====
+        // ===============================
+        // PRÓXIMO NÍVEL
+        // ===============================
         if (this.ufos.every(u => !u.alive)) {
             play.goToPosition(new TransferPosition(this.level + 1));
         }
 
-        // ===== GAME OVER =====
+        // ===============================
+        // GAME OVER
+        // ===============================
         if (
             play.lives <= 0 ||
-            this.ufos.some(u => u.alive && u.y + u.h >= play.playBoundaries.bottom)
+            this.ufos.some(
+                u => u.alive && u.y + u.h >= play.playBoundaries.bottom
+            )
         ) {
             play.goToPosition(new GameOverPosition());
         }
@@ -164,7 +229,13 @@ class InGamePosition {
         con.fillText(`Score: ${play.score}`, 20, 90);
 
         // Player
-        con.drawImage(this.playerImg, this.player.x, this.player.y, this.player.w, this.player.h);
+        con.drawImage(
+            this.playerImg,
+            this.player.x,
+            this.player.y,
+            this.player.w,
+            this.player.h
+        );
 
         // UFOs
         this.ufos.forEach(u => {
@@ -175,9 +246,13 @@ class InGamePosition {
 
         // Bullets
         con.fillStyle = "yellow";
-        this.playerBullets.forEach(b => con.fillRect(b.x - 2, b.y, 4, 10));
+        this.playerBullets.forEach(b =>
+            con.fillRect(b.x - 2, b.y, 4, 10)
+        );
 
         con.fillStyle = "red";
-        this.enemyBullets.forEach(b => con.fillRect(b.x - 2, b.y, 4, 10));
+        this.enemyBullets.forEach(b =>
+            con.fillRect(b.x - 2, b.y, 4, 10)
+        );
     }
 }
