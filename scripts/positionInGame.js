@@ -24,29 +24,25 @@ class InGamePosition {
         play.canvas.style.backgroundSize = "100% 100%";
 
         // ===============================
-        // DIFICULDADE PROGRESSIVA REAL
+        // DIFICULDADE PROGRESSIVA
         // ===============================
         this.enemySpeed = 50 + this.level * 6;
         this.maxEnemyShots = Math.min(1 + Math.floor(this.level / 3), 12);
         this.enemyFireChance = Math.min(0.03 + this.level * 0.01, 0.8);
 
         // ===============================
-        // PLAYER
+        // PLAYER (imagem única)
         // ===============================
         this.player = {
             x: play.width / 2 - 25,
             y: play.playBoundaries.bottom - 50,
             w: 50,
             h: 45,
-            speed: 320,
-            moving: false
+            speed: 320
         };
 
-        this.playerImgIdle = new Image();
-        this.playerImgIdle.src = "images/man.gif";
-
-        this.playerImgRun = new Image();
-        this.playerImgRun.src = "images/r.gif";
+        this.playerImg = new Image();
+        this.playerImg.src = "images/man.gif";
 
         // ===============================
         // TIROS DO PLAYER
@@ -74,9 +70,10 @@ class InGamePosition {
         }
 
         this.ufoImg = new Image();
-        this.ufoImg.src = this.level % 2 === 0
-            ? "images/ufo2.png"
-            : "images/ufo.png";
+        this.ufoImg.src =
+            this.level % 2 === 0
+                ? "images/ufo2.png"
+                : "images/ufo.png";
 
         this.enemyBullets = [];
         this.enemyDir = 1;
@@ -86,18 +83,10 @@ class InGamePosition {
         const dt = play.setting.updateSeconds;
 
         // ===============================
-        // MOVIMENTO PLAYER + ANIMAÇÃO
+        // MOVIMENTO PLAYER
         // ===============================
-        this.player.moving = false;
-
-        if (play.pressedKeys[37]) {
-            this.player.x -= this.player.speed * dt;
-            this.player.moving = true;
-        }
-        if (play.pressedKeys[39]) {
-            this.player.x += this.player.speed * dt;
-            this.player.moving = true;
-        }
+        if (play.pressedKeys[37]) this.player.x -= this.player.speed * dt;
+        if (play.pressedKeys[39]) this.player.x += this.player.speed * dt;
 
         this.player.x = Math.max(
             play.playBoundaries.left,
@@ -140,7 +129,7 @@ class InGamePosition {
         }
 
         // ===============================
-        // TIROS INIMIGOS (MUITO MAIS!)
+        // TIROS INIMIGOS (MAIS A CADA NÍVEL)
         // ===============================
         if (Math.random() < this.enemyFireChance) {
             const shooters = this.ufos.filter(u => u.alive);
@@ -158,7 +147,7 @@ class InGamePosition {
         this.enemyBullets.forEach(b => (b.y += 320 * dt));
 
         // ===============================
-        // COLISÃO PLAYER → UFO
+        // COLISÕES
         // ===============================
         this.playerBullets = this.playerBullets.filter(b => {
             for (const u of this.ufos) {
@@ -178,9 +167,6 @@ class InGamePosition {
             return true;
         });
 
-        // ===============================
-        // COLISÃO UFO → PLAYER
-        // ===============================
         this.enemyBullets = this.enemyBullets.filter(b => {
             const hit =
                 b.x > this.player.x &&
@@ -208,7 +194,9 @@ class InGamePosition {
         // ===============================
         if (
             play.lives <= 0 ||
-            this.ufos.some(u => u.alive && u.y + u.h >= play.playBoundaries.bottom)
+            this.ufos.some(
+                u => u.alive && u.y + u.h >= play.playBoundaries.bottom
+            )
         ) {
             play.goToPosition(new GameOverPosition());
         }
@@ -224,12 +212,14 @@ class InGamePosition {
         con.fillText(`Lives: ${play.lives}`, 20, 60);
         con.fillText(`Score: ${play.score}`, 20, 90);
 
-        // PLAYER (ANIMADO)
-        const img = this.player.moving
-            ? this.playerImgRun
-            : this.playerImgIdle;
-
-        con.drawImage(img, this.player.x, this.player.y, this.player.w, this.player.h);
+        // PLAYER
+        con.drawImage(
+            this.playerImg,
+            this.player.x,
+            this.player.y,
+            this.player.w,
+            this.player.h
+        );
 
         // UFOs
         this.ufos.forEach(u => {
