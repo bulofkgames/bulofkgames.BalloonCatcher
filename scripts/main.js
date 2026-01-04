@@ -1,8 +1,14 @@
+// ===============================
+// Canvas setup
+// ===============================
 const canvas = document.getElementById("Canvas");
 canvas.width = 900;
 canvas.height = 750;
 const con = canvas.getContext("2d");
 
+// ===============================
+// Resize (responsivo)
+// ===============================
 function resize() {
     const height = window.innerHeight - 20;
     const ratio = canvas.width / canvas.height;
@@ -11,7 +17,9 @@ function resize() {
     canvas.style.width = width + "px";
     canvas.style.height = height + "px";
 }
-window.addEventListener("load", resize, false);
+
+window.addEventListener("load", resize);
+window.addEventListener("resize", resize);
 
 // ===============================
 // Game Basics
@@ -34,7 +42,7 @@ class GameBasics {
         this.score = 0;
         this.shields = 2;
 
-        // Configurações
+        // Configurações do jogo
         this.setting = {
             updateSeconds: 1 / 60,
             manSpeed: 200,
@@ -51,10 +59,11 @@ class GameBasics {
 
         this.positionContainer = [];
         this.pressedKeys = {};
+        this.lastTime = 0;
     }
 
     presentPosition() {
-        return this.positionContainer.length > 0
+        return this.positionContainer.length
             ? this.positionContainer[this.positionContainer.length - 1]
             : null;
     }
@@ -69,77 +78,64 @@ class GameBasics {
         this.positionContainer.push(position);
     }
 
-    pushPosition(position) {
-        this.positionContainer.push(position);
-    }
-
-    popPosition() {
-        this.positionContainer.pop();
-    }
-
     start() {
-        setInterval(() => {
-            gameLoop(this);
-        }, this.setting.updateSeconds * 1000);
-
-        // IMPORTANTE: OpeningPosition deve existir em outro arquivo
         if (typeof OpeningPosition !== "undefined") {
             this.goToPosition(new OpeningPosition());
         } else {
             console.warn("OpeningPosition não encontrada.");
         }
+
+        requestAnimationFrame(this.loop.bind(this));
     }
 
-    keyDown(keyboardCode) {
-        this.pressedKeys[keyboardCode] = true;
+    loop(time) {
+        const delta = (time - this.lastTime) / 1000;
+        this.lastTime = time;
 
-        if (this.presentPosition() && this.presentPosition().keyDown) {
-            this.presentPosition().keyDown(this, keyboardCode);
+        const position = this.presentPosition();
+        if (position) {
+            if (position.update) position.update(this, delta);
+            if (position.draw) position.draw(this);
+        }
+
+        requestAnimationFrame(this.loop.bind(this));
+    }
+
+    keyDown(code) {
+        this.pressedKeys[code] = true;
+
+        if (this.presentPosition()?.keyDown) {
+            this.presentPosition().keyDown(this, code);
         }
     }
 
-    keyUp(keyboardCode) {
-        delete this.pressedKeys[keyboardCode];
+    keyUp(code) {
+        delete this.pressedKeys[code];
     }
 }
 
 // ===============================
-// Game Loop
+// Keyboard controls
 // ===============================
-function gameLoop(play) {
-    const position = play.presentPosition();
+const play = new GameBasics(canvas);
 
-    if (!position) return;
+window.addEventListener("keydown", (e) => {
+    const code = e.keyCode || e.which;
 
-    if (position.update) {
-        position.update(play);
-    }
-
-    if (position.draw) {
-        position.draw(play);
-    }
-}
-
-// ===============================
-// Keyboard
-// ===============================
-window.addEventListener("keydown", function (e) {
-    const keyboardCode = e.which || e.keyCode;
-
-    if (keyboardCode === 37 || keyboardCode === 39 || keyboardCode === 32) {
+    // Evita scroll com setas, espaço e enter
+    if ([13, 32, 37, 38, 39, 40].includes(code)) {
         e.preventDefault();
     }
 
-    play.keyDown(keyboardCode);
+    play.keyDown(code);
 });
 
-window.addEventListener("keyup", function (e) {
-    const keyboardCode = e.which || e.keyCode;
-    play.keyUp(keyboardCode);
+window.addEventListener("keyup", (e) => {
+    const code = e.keyCode || e.which;
+    play.keyUp(code);
 });
 
 // ===============================
 // Start Game
 // ===============================
-const play = new GameBasics(canvas);
 play.start();
